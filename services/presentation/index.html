@@ -6,16 +6,29 @@
   <title>Campus Buzz</title>
 </head>
 <body>
-  <h1>Campus Buzz</h1>
-  <form id="event-form">
-    <label>Title: <input name="title" required /></label><br />
-    <label>Description: <textarea name="description" required></textarea></label><br />
-    <label>Location: <input name="location" required /></label><br />
-    <label>Date: <input type="date" name="date" required /></label><br />
-    <label>Organiser: <input name="organiser" required /></label><br />
-    <button type="submit">Submit</button>
-  </form>
-  <pre id="result"></pre>
+  <h1>Campus Buzz - Event Submission</h1>
+
+  <section id="submission-section">
+    <h3>Submit New Event</h3>
+    <form id="event-form">
+      <label>Event Title: <input name="title" required /></label><br />
+      <label>Description (min 40 chars): <textarea name="description" required minlength="40"></textarea></label><br />
+      <label>Location: <input name="location" required /></label><br />
+      <label>Date (YYYY-MM-DD): <input type="text" name="date" placeholder="2026-04-19" required /></label><br />
+      <label>Organiser: <input name="organiser" required /></label><br />
+      <button type="submit" id="submit-btn">Submit Event</button>
+    </form>
+  </section>
+
+  <hr />
+
+  <section id="results-section">
+    <h3>Submission Status</h3>
+    <div id="status-container">
+      <p>No submissions yet. Submit a form to see the result.</p>
+    </div>
+  </section>
+
   <script src="src/app.js"></script>
 </body>
 </html>
