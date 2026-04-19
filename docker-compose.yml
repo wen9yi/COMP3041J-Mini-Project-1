@@ -25,7 +25,7 @@ services:
     environment:
       - DATABASE_URL=sqlite:///events.db
 
-# 预留 Serverless 回调接口：
+# Reserved Serverless callback interface:
 # Submission Event Function -> SUBMISSION_EVENT_URL
 # Processing Function -> RESULT_UPDATE_URL
-# Result Update Function -> data-service /records/<id> PATCH or 自定义回调路由
+# Result Update Function -> data-service /records/<id> PATCH or Custom callback routing
