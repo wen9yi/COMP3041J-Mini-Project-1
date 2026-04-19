@@ -51,16 +51,14 @@ def home():
 @app.route("/records", methods=["POST"])
 def create_record():
     payload = request.get_json(force=True)
-    required_fields = ["title", "description", "location", "date", "organiser"]
-    if not all(payload.get(field) for field in required_fields):
-        return jsonify({"error": "Missing required fields"}), 400
-
+    
+    # 允许任何形式的提交，Processing Function 将判定完整性
     record = EventRecord(
-        title=payload["title"],
-        description=payload["description"],
-        location=payload["location"],
-        date=payload["date"],
-        organiser=payload["organiser"],
+        title=payload.get("title"),
+        description=payload.get("description"),
+        location=payload.get("location"),
+        date=payload.get("date"),
+        organiser=payload.get("organiser"),
         status=payload.get("status", "PENDING"),
         category=payload.get("category"),
         priority=payload.get("priority"),
@@ -94,9 +92,14 @@ def update_record(record_id):
     if record is None:
         return jsonify({"error": "Record not found"}), 404
 
-    for field in ["status", "category", "priority", "note"]:
-        if field in payload:
-            setattr(record, field, payload[field])
+    if 'status' in payload or 'final_status' in payload:
+        record.status = payload.get('status') or payload.get('final_status')
+    if 'category' in payload or 'assigned_category' in payload:
+        record.category = payload.get('category') or payload.get('assigned_category')
+    if 'priority' in payload or 'assigned_priority' in payload:
+        record.priority = payload.get('priority') or payload.get('assigned_priority')
+    if 'note' in payload:
+        record.note = payload['note']
 
     db.session.commit()
     return jsonify(record_to_dict(record))

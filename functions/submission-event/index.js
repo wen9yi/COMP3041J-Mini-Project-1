@@ -1,5 +1,5 @@
 const http = require('http');
-const PROCESSOR_URL = process.env.PROCESSOR_URL || 'http://processor:8081/process';
+const PROCESSOR_URL = process.env.PROCESSOR_URL || 'http://localhost:8081/process';
 const PORT = 8080;
 
 const server = http.createServer((req, res) => {

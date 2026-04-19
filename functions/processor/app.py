@@ -4,7 +4,7 @@ import requests
 from logic import process_event
 
 app = Flask(__name__)
-RESULT_UPDATE_URL = os.getenv('RESULT_UPDATE_URL', 'http://result-update:8080/update')
+RESULT_UPDATE_URL = os.getenv('RESULT_UPDATE_URL', 'http://localhost:8082/update')
 
 @app.route('/process', methods=['POST'])
 def process():

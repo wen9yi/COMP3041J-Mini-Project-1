@@ -8,8 +8,8 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
-DATA_SERVICE = os.getenv("DATA_SERVICE_URL", "http://data-service:5002")
-EVENT_FUNC = os.getenv("SUBMISSION_EVENT_URL", "http://submission-event:8080/event")
+DATA_SERVICE = os.getenv("DATA_SERVICE_URL", "http://localhost:5002")
+EVENT_FUNC = os.getenv("SUBMISSION_EVENT_URL", "http://localhost:8080/event")
 
 
 @app.route("/", methods=["GET"])
@@ -26,10 +26,8 @@ def home():
 @app.route('/api/submit', methods=['POST'])
 def handle_submission():
     payload = request.get_json(force=True)
-    required_fields = ["title", "description", "location", "date", "organiser"]
-    if not all(payload.get(field) for field in required_fields):
-        return jsonify({"error": "Missing required fields"}), 400
-
+    
+    # 允许任何形式的提交，Processing Function 将判定完整性
     # 1. 创建初始记录，状态默认 PENDING
     data_payload = {**payload, "status": "PENDING"}
     data_response = requests.post(f"{DATA_SERVICE}/records", json=data_payload, timeout=5)

@@ -23,6 +23,7 @@ function App() {
       case 'APPROVED': return 'success';
       case 'NEEDS REVISION': return 'warning';
       case 'INCOMPLETE': return 'error';
+      case 'PENDING': return 'default';
       default: return 'default';
     }
   };
@@ -91,13 +92,13 @@ function App() {
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
           <TextField
             fullWidth label="Event Title" name="title"
-            value={formData.title} onChange={handleChange} required sx={{ mb: 2 }}
+            value={formData.title} onChange={handleChange} sx={{ mb: 2 }}
           />
           <TextField
             fullWidth label="Description (Min 40 characters)" name="description"
-            value={formData.description} onChange={handleChange} multiline rows={3} required
+            value={formData.description} onChange={handleChange} multiline rows={3}
             error={formData.description.length > 0 && formData.description.length < 40}
-            helperText={`${formData.description.length}/40 characters minimum`}
+            helperText={`${formData.description.length}/40 characters minimum (warning only)`}
             sx={{
               mb: 2,
               '& .MuiInputLabel-outlined.MuiInputLabel-shrink': {
@@ -109,18 +110,18 @@ function App() {
           />
           <TextField
             fullWidth label="Location" name="location"
-            value={formData.location} onChange={handleChange} required sx={{ mb: 2 }}
+            value={formData.location} onChange={handleChange} sx={{ mb: 2 }}
           />
           <TextField
             fullWidth label="Date" name="date" type="date"
-            value={formData.date} onChange={handleChange} required
+            value={formData.date} onChange={handleChange}
             InputLabelProps={{ shrink: true }}
-            helperText="Format: YYYY-MM-DD "
+            helperText="Format: YYYY-MM-DD (warning only)"
             sx={{ mb: 2 }}
           />
           <TextField
             fullWidth label="Organiser Name" name="organiser"
-            value={formData.organiser} onChange={handleChange} required sx={{ mb: 3 }}
+            value={formData.organiser} onChange={handleChange} sx={{ mb: 3 }}
           />
           <Button
             type="submit" variant="contained" color="primary" size="large"
@@ -145,50 +146,65 @@ function App() {
           <Typography color="text.secondary">No events submitted yet.</Typography>
         ) : (
           <List>
-            {records.map((record, index) => (
-              <React.Fragment key={record.id}>
-                <ListItem alignItems="flex-start" sx={{ px: 0, py: 2 }}>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="h6">{record.title}</Typography>
-                        <Chip
-                          label={record.status}
-                          color={getStatusColor(record.status)}
-                          size="small"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                      </Box>
-                    }
-                    secondary={
-                      <Box component="span">
-                        <Typography variant="body2" color="text.primary">
-                          {record.location} | {record.date} | {record.organiser}
-                        </Typography>
+            {records.map((record, index) => {
+              const status = record.final_status || record.status;
+              const category = record.assigned_category || record.category;
+              const priority = record.assigned_priority || record.priority;
+              const note = record.note || 'No additional notes.';
 
-                        <Typography variant="body2" sx={{ fontStyle: 'italic', my: 1 }}>
-                          "{record.description}"
-                        </Typography>
+              return (
+                <React.Fragment key={record.id}>
+                  <ListItem alignItems="flex-start" sx={{ px: 0, py: 2 }}>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                          <Typography variant="h6">{record.title}</Typography>
+                          <Chip
+                            label={status}
+                            color={getStatusColor(status)}
+                            size="small"
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        <Box component="span">
+                          <Typography variant="body2" color="text.primary">
+                            {record.location} | {record.date} | {record.organiser}
+                          </Typography>
 
-                        {/* 展示结果详情：分类、优先级和备注。只有当状态不是 PENDING 时才显示这些详细信息  */}
-                        {record.status !== 'PENDING' && (
-                          <Box sx={{ mt: 1 }}>
-                            <Stack direction="row" spacing={1}>
-                              <Chip label={`Category: ${record.category}`} size="small" variant="outlined" />
-                              <Chip label={`Priority: ${record.priority}`} size="small" variant="outlined" />
-                            </Stack>
-                            <Alert severity="info" icon={false} sx={{ mt: 1, py: 0 }}>
-                              <strong>Note:</strong> {record.note}
-                            </Alert>
-                          </Box>
-                        )}
-                      </Box>
-                    }
-                  />
-                </ListItem>
-                {index < records.length - 1 && <Divider />}
-              </React.Fragment>
-            ))}
+                          <Typography variant="body2" sx={{ fontStyle: 'italic', my: 1 }}>
+                            "{record.description}"
+                          </Typography>
+
+                          {/* 展示结果详情：分类、优先级和备注。只有当状态不是 PENDING 时才显示这些详细信息  */}
+                          {status !== 'PENDING' && (
+                            <Box sx={{ mt: 1 }}>
+                              <Stack direction="row" spacing={1}>
+                                <Chip 
+                                  label={`Category: ${status === 'INCOMPLETE' || status === 'NEEDS REVISION' ? 'N/A' : category}`} 
+                                  size="small" 
+                                  variant="outlined" 
+                                />
+                                <Chip 
+                                  label={`Priority: ${status === 'INCOMPLETE' || status === 'NEEDS REVISION' ? 'N/A' : priority}`} 
+                                  size="small" 
+                                  variant="outlined" 
+                                />
+                              </Stack>
+                              <Alert severity="info" icon={false} sx={{ mt: 1, py: 0 }}>
+                                <strong>Note:</strong> {note}
+                              </Alert>
+                            </Box>
+                          )}
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                  {index < records.length - 1 && <Divider />}
+                </React.Fragment>
+              );
+            })}
           </List>
         )}
       </Paper>

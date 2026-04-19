@@ -194,6 +194,71 @@ curl http://localhost:5002/records | jq '.[0]'  # 查看第一条记录
 - `GET /`：服务信息
 - `POST /api/submit`：接收前端事件提交，创建 `PENDING` 记录并调用 `Submission Event Function`
 
+## System Workflow
+
+1. **用户提交事件**：前端表单将 `title`, `description`, `location`, `date`, `organiser` 发送到 Workflow Service。
+2. **Workflow Service 存储初始记录**：Workflow Service 调用 Data Service 的 `POST /records`，将事件保存为 `PENDING` 状态。
+3. **触发 Submission Event**：Workflow Service 将事件元数据发送到 Submission Event Function 模拟入口。
+4. **Processing Function 执行判定**：Processing Function 接收事件并按规则执行完整性、格式检查和关键词分类。
+5. **更新判定结果**：Processing Function 将最终结果通过 Result Update Function 回传到 Data Service。
+6. **前端展示结果**：Presentation Service 定期读取 Data Service 中的记录，并展示 `final_status`, `assigned_category`, `assigned_priority`, `note` 等判定结果。
+
+## Event Processing Rules
+
+- **INCOMPLETE**：若任一必填字段 `title`, `description`, `location`, `date`, `organiser` 缺失或为空，即返回 `INCOMPLETE`。
+- **NEEDS REVISION**：若日期格式不符合 `YYYY-MM-DD`，或 `description` 字符数少于 40，则返回 `NEEDS REVISION`。
+- **APPROVED**：当完整性检查和格式检查均通过后，事件进入分类与优先级判定，即返回 `APPROVED`。
+
+### 关键词分类优先级（Precedence）
+
+1. `OPPORTUNITY`：匹配关键词 `career`, `internship`, `recruitment`
+2. `ACADEMIC`：匹配关键词 `workshop`, `seminar`, `lecture`
+3. `SOCIAL`：匹配关键词 `club`, `society`, `social`
+4. `GENERAL`：以上关键词均未匹配时归为 `GENERAL`
+
+### Priority 映射
+
+- `OPPORTUNITY` → `HIGH`
+- `ACADEMIC` → `MEDIUM`
+- `SOCIAL` → `NORMAL`
+- `GENERAL` → `NORMAL`
+
+## API Specification
+
+### Workflow Service -> Processing Function
+
+请求体结构：
+
+```json
+{
+  "id": 123,
+  "title": "Campus Recruitment Fair",
+  "description": "A large-scale recruitment event with multiple companies and internship opportunities.",
+  "location": "Main Hall",
+  "date": "2024-04-20",
+  "organiser": "Career Center"
+}
+```
+
+### Processing Function 返回 / Result Update 传递结构
+
+回传到 Data Service 的结果中包含：
+
+```json
+{
+  "id": 123,
+  "status": "APPROVED",
+  "final_status": "APPROVED",
+  "category": "OPPORTUNITY",
+  "assigned_category": "OPPORTUNITY",
+  "priority": "HIGH",
+  "assigned_priority": "HIGH",
+  "note": "Processing successful."
+}
+```
+
+其中 `final_status`, `assigned_category`, `assigned_priority` 为前端展示的核心判定字段。
+
 ## Processing Function 规则说明
 
 `functions/processor/logic.py` 实现了以下规则：
