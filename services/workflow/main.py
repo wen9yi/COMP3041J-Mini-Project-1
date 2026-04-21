@@ -3,6 +3,7 @@ import requests
 import os
 from flask_cors import CORS
 from dotenv import load_dotenv
+import threading
 
 # Load environment variables from .env file
 load_dotenv()
@@ -67,11 +68,15 @@ def handle_submission():
     # Step 2: Trigger asynchronous event processing (fire-and-forget)
     event_payload = {"id": record["id"], **payload}
 
-    try:
-        requests.post(EVENT_FUNC, json=event_payload, timeout=5)
-    except requests.RequestException:
-        # Ignore failures in async triggering to avoid blocking client response
-        pass
+    def trigger():
+        try:
+            # Keep this short so submit latency stays low.
+            requests.post(EVENT_FUNC, json=event_payload, timeout=2)
+        except requests.RequestException:
+            # Ignore failures in async triggering to avoid blocking client response
+            pass
+
+    threading.Thread(target=trigger, daemon=True).start()
 
     # Step 3: Return acknowledgment (async processing)
     return jsonify({

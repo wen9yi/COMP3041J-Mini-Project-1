@@ -1,233 +1,248 @@
 # Campus Buzz
 
-Campus Buzz 是一个混合云 Mini-project，演示前端提交、工作流服务、数据持久化、以及 Serverless 事件处理的基础集成。
+Campus Buzz is a hybrid-cloud mini project that demonstrates the basic integration of:
 
-该项目目标是构建一个简单且可复现的"事件提交 -> 工作流记录 -> 事件触发 -> 处理函数 -> 结果回填"流程。项目不涉及复杂登录、权限系统或高端 UI 美化，适合快速验证系统架构和服务编排。
+- Frontend submission
+- A workflow orchestration service
+- Data persistence
+- Serverless-style event processing (simulated)
 
-## 项目结构
+The goal is to build a simple, reproducible pipeline:
+
+Event submission → workflow persistence → event trigger → processing function → result write-back.
+
+This project intentionally avoids complex authentication/authorization systems and heavy UI work, making it suitable for quickly validating system architecture and service orchestration.
+
+## Project Structure
 
 ```
 campus-buzz/
 ├── docker-compose.yml
 ├── README.md
 ├── requirements.txt
-├── start-services.sh          # 快速启动脚本
-├── venv/                      # Python 虚拟环境（运行脚本后自动创建）
+├── start-services.sh          # Script to quickly start all services for macOS/Linux
+├── start-windows.bat          # Script to quickly start all services for Windows
+├── venv/                      # Python virtual environment (created automatically after running the script)
 ├── services/
 │   ├── data-service/
-│   │   ├── api.py            # Flask API 服务，提供事件记录 CRUD
-│   │   ├── database.py       # SQLAlchemy 模型定义
-│   │   ├── Dockerfile        # 数据服务容器配置
-│   │   └── requirements.txt  # Python 依赖
+│   │   ├── api.py            # Flask API service providing CRUD operations for event records
+│   │   ├── database.py       # SQLAlchemy model definitions
+│   │   ├── Dockerfile        # Container configuration for the data service
+│   │   └── requirements.txt  # Python dependencies
 │   ├── workflow/
-│   │   ├── main.py           # Flask API 服务，处理事件提交
-│   │   ├── Dockerfile        # 工作流服务容器配置
-│   │   └── requirements.txt  # Python 依赖
+│   │   ├── main.py           # Flask API service handling event submissions
+│   │   ├── Dockerfile        # Container configuration for the workflow service
+│   │   └── requirements.txt  # Python dependencies
 │   └── presentation/
-│       ├── Dockerfile        # 前端容器配置
-│       ├── package.json      # Node.js 依赖和脚本
+│       ├── Dockerfile        # Container configuration for the frontend
+│       ├── package.json      # Node.js dependencies and scripts
 │       ├── public/
-│       │   └── index.html    # React 应用入口
+│       │   └── index.html    # Entry point for the React application
 │       └── src/
-│           ├── App.js        # 主 React 组件
-│           ├── index.js      # React 应用入口点
-│           ├── index.css     # 样式文件
-│           └── setupProxy.js # 开发环境代理配置
+│           ├── App.js        # Main React component
+│           ├── index.js      # Entry point of the React app
+│           ├── index.css     # Stylesheet
+│           └── setupProxy.js # Proxy configuration for development environment
 └── functions/
     ├── submission-event/
-    │   ├── index.js          # Serverless 函数模拟
-    │   └── Dockerfile        # 函数容器配置
+    │   ├── index.js          # Submission event function simulator (HTTP)
+    │   └── Dockerfile        # Container configuration for the function
     ├── processor/
-    │   ├── logic.py          # 事件处理逻辑
-    │   ├── app.py            # 处理函数 Flask 应用
-    │   └── Dockerfile        # 函数容器配置
+    │   ├── logic.py          # Event processing logic (validation and classification rules)
+    │   ├── app.py            # Flask app for processing function
+    │   └── Dockerfile        # Container configuration for the function
     └── result-update/
-        ├── updater.py        # 结果更新逻辑
-        ├── app.py            # 更新函数 Flask 应用
-        └── Dockerfile        # 函数容器配置
+        ├── updater.py        # Logic for writing results back to Data Service
+        ├── app.py            # Flask app for result update function
+        └── Dockerfile        # Container configuration for the function
 ```
 
-## 核心功能说明
+## Key Components
 
-- **Data Service** (`services/data-service`)：基于 Flask + SQLAlchemy 的 REST API 服务
-  - 提供事件记录的完整 CRUD 操作
-  - 使用 SQLite 数据库存储数据
-  - 支持 CORS 跨域请求
+- **Data Service** (`services/data-service`)
+  - Flask + SQLAlchemy REST API
+  - Full CRUD for event records
+  - Persists data in SQLite
+  - CORS enabled
 
-- **Workflow Service** (`services/workflow`)：基于 Flask 的工作流编排服务
-  - 接收前端事件提交请求
-  - 创建初始 PENDING 状态的记录到 Data Service
-  - 模拟触发 Serverless Submission Event Function
+- **Workflow Service** (`services/workflow`)
+  - Flask orchestration service
+  - Receives event submissions from the frontend
+  - Creates an initial record in the Data Service with `PENDING` status
+  - Triggers the submission-event simulator (serverless-style)
 
-- **Presentation Service** (`services/presentation`)：基于 React + Material-UI 的现代化前端
-  - 提供直观的事件提交表单
-  - 实时显示事件列表
-  - 直接调用后端 API（不使用代理）
+- **Presentation Service** (`services/presentation`)
+  - React + Material UI frontend
+  - Event submission form
+  - Live event list display (polling)
+  - Calls backend APIs directly
 
-- **Processing Function** (`functions/processor`)：事件处理逻辑
-  - 实现完整的业务规则验证
-  - 根据内容自动分类和优先级分配
-  - 支持多种状态判断
+- **Processing Function** (`functions/processor`)
+  - Validates the payload
+  - Classifies events by keywords
+  - Assigns priority based on category
+  - Produces a final status and note
 
-- **Serverless Functions**：预留的云函数模拟接口
-  - Submission Event：事件提交触发器
-  - Result Update：处理结果回填器
+- **Serverless-style Functions (Simulated)**
+  - Submission Event: receives a submission trigger and forwards it to the processor
+  - Result Update: receives processor output and patches the Data Service record
 
-## 先决条件
+## Prerequisites
 
-### 必需环境
-- **Python 3.11+**（推荐 3.11 或 3.12）
-  - 用于运行 Flask 后端服务
-- **Node.js 18+**（推荐 18.x LTS）
-  - 用于运行 React 前端
+### Required
+
+- **Python 3.11+** (recommended: 3.11 or 3.12)
+- **Node.js 18+** (recommended: 18.x LTS)
 - **Git**
-  - 用于克隆仓库
 
-### 可选环境
-- **Docker & Docker Compose**
-  - 用于容器化部署（当前 README 重点介绍本地开发方式）
+### Optional
 
-### 系统要求
-- **macOS** (已测试)
-- **Linux** / **Windows** (理论兼容，需要相应调整脚本)
+- **Docker & Docker Compose** (for containerized deployment)
 
-## 本地复现步骤
+### OS Compatibility
 
-### 🚀 快速启动（推荐）
+- **macOS** (tested)
+- **Linux** / **Windows** (should work; scripts may need adjustments)
+
+## Local Setup
+
+### Quick Start (Recommended)
 
 ```bash
-# 1. 克隆项目
+# 1. Clone the repo
 git clone <your-github-repo-url>
 cd campus-buzz
 
-# 2. 运行启动脚本（一键启动所有服务）
+# 2. Run the startup script (starts all services)
 ./start-services.sh
 ```
 
-启动脚本会自动：
-- ✅ 检查系统依赖（Python 3.11+, Node.js 18+）
-- ✅ 创建 Python 虚拟环境
-- ✅ 安装所有依赖包
-- ✅ 启动三个服务（Data:5002, Workflow:5001, Frontend:3000）
-- ✅ 自动打开浏览器访问前端
+The script will:
 
-### 🛠️ 手动启动步骤（备选）
+- Check dependencies (Python and Node.js)
+- Create a Python virtual environment
+- Install dependencies
+- Start services (Data: 5002, Workflow: 5001, Frontend: 3000)
+- Open the frontend in your browser
 
-如果自动脚本有问题，可以手动启动：
+### Manual Start (Alternative)
 
-#### 1. 环境准备
+If the script fails, you can start services manually.
+
+#### 1. Environment Setup
+
 ```bash
-# 克隆项目
 git clone <your-github-repo-url>
 cd campus-buzz
 
-# 创建 Python 虚拟环境
 python3 -m venv venv
 source venv/bin/activate  # Linux/macOS
-# 或 venv\Scripts\activate  # Windows
+# or venv\Scripts\activate  # Windows
 
-# 安装 Python 依赖
 pip install -r requirements.txt
 ```
 
-#### 2. 启动 Data Service
+#### 2. Start Data Service
+
 ```bash
-# 终端窗口 1
 cd services/data-service
 python api.py
 ```
-服务地址：`http://localhost:5002`
 
-#### 3. 启动 Workflow Service
+Service URL: `http://localhost:5002`
+
+#### 3. Start Workflow Service
+
 ```bash
-# 终端窗口 2
 cd services/workflow
 DATA_SERVICE_URL=http://localhost:5002 python main.py
 ```
-服务地址：`http://localhost:5001`
 
-#### 4. 启动前端
+Service URL: `http://localhost:5001`
+
+#### 4. Start Frontend
+
 ```bash
-# 终端窗口 3
 cd services/presentation
 npm install
 npm start
 ```
-前端地址：`http://localhost:3000`
 
-### 🧪 快速验证
+Frontend URL: `http://localhost:3000`
 
-启动所有服务后，运行以下命令验证：
+### Quick Verification
 
 ```bash
-# 1. 检查服务是否运行
-curl -s http://localhost:5001/ | head -1  # 应该返回 Workflow Service 信息
-curl -s http://localhost:5002/ | head -1  # 应该返回 Data Service 信息
+# 1. Check if services are running
+curl -s http://localhost:5001/ | head -1  # Workflow Service
+curl -s http://localhost:5002/ | head -1  # Data Service
 
-# 2. 测试完整流程
+# 2. Test the submit endpoint
 curl -X POST http://localhost:5001/api/submit \
   -H "Content-Type: application/json" \
-  -d '{"title":"测试事件","description":"这是一个测试","location":"测试地点","date":"2024-12-31","organiser":"测试者"}'
+  -d '{"title":"Test Event","description":"This is a test submission to validate the pipeline end-to-end.","location":"Test Location","date":"2024-12-31","organiser":"Tester"}'
 
-# 3. 检查数据是否创建
-curl http://localhost:5002/records | jq '.[0]'  # 查看第一条记录
+# 3. Verify records exist
+curl http://localhost:5002/records | jq '.[0]'
 ```
 
-### 📊 服务端口说明
+### Service Ports
 
-- **Frontend**: `http://localhost:3000` - React 应用
-- **Workflow Service**: `http://localhost:5001` - 事件提交处理
-- **Data Service**: `http://localhost:5002` - 数据存储和查询
+- **Frontend**: `http://localhost:3000`
+- **Workflow Service**: `http://localhost:5001`
+- **Data Service**: `http://localhost:5002`
 
-## 服务接口说明
+## Service APIs
 
 ### Data Service
 
-- `GET /`：服务信息
-- `POST /records`：创建记录，必需字段：`title`, `description`, `location`, `date`, `organiser`
-- `GET /records`：查询所有记录
-- `GET /records/<id>`：查询单条记录
-- `PATCH /records/<id>`：更新记录的 `status`, `category`, `priority`, `note`
+- `GET /`: service info
+- `POST /records`: create a record (required fields: `title`, `description`, `location`, `date`, `organiser`)
+- `GET /records`: list all records
+- `GET /records/<id>`: get a single record
+- `PATCH /records/<id>`: update `status`, `category`, `priority`, `note`
 
 ### Workflow Service
 
-- `GET /`：服务信息
-- `POST /api/submit`：接收前端事件提交，创建 `PENDING` 记录并调用 `Submission Event Function`
+- `GET /`: service info
+- `POST /api/submit`: receives submissions, creates a `PENDING` record, and triggers the submission-event simulator
 
 ## System Workflow
 
-1. **用户提交事件**：前端表单将 `title`, `description`, `location`, `date`, `organiser` 发送到 Workflow Service。
-2. **Workflow Service 存储初始记录**：Workflow Service 调用 Data Service 的 `POST /records`，将事件保存为 `PENDING` 状态。
-3. **触发 Submission Event**：Workflow Service 将事件元数据发送到 Submission Event Function 模拟入口。
-4. **Processing Function 执行判定**：Processing Function 接收事件并按规则执行完整性、格式检查和关键词分类。
-5. **更新判定结果**：Processing Function 将最终结果通过 Result Update Function 回传到 Data Service。
-6. **前端展示结果**：Presentation Service 定期读取 Data Service 中的记录，并展示 `final_status`, `assigned_category`, `assigned_priority`, `note` 等判定结果。
+1. The user submits an event in the frontend.
+2. Workflow Service stores an initial record in Data Service with status `PENDING`.
+3. Workflow triggers the Submission Event simulator.
+4. Submission Event forwards the payload to the Processor.
+5. Processor evaluates and sends its decision to Result Update.
+6. Result Update writes back to Data Service via `PATCH /records/<id>`.
+7. The frontend polls Data Service and displays final status, category, priority, and notes.
 
 ## Event Processing Rules
 
-- **INCOMPLETE**：若任一必填字段 `title`, `description`, `location`, `date`, `organiser` 缺失或为空，即返回 `INCOMPLETE`。
-- **NEEDS REVISION**：若日期格式不符合 `YYYY-MM-DD`，或 `description` 字符数少于 40，则返回 `NEEDS REVISION`。
-- **APPROVED**：当完整性检查和格式检查均通过后，事件进入分类与优先级判定，即返回 `APPROVED`。
+- **INCOMPLETE**
+  - If any required field (`title`, `description`, `location`, `date`, `organiser`) is missing or empty.
+- **NEEDS REVISION**
+  - If date format is not `YYYY-MM-DD`, or `description` is fewer than 40 characters.
+- **APPROVED**
+  - If completeness and format checks pass, the event is classified and assigned a priority.
 
-### 关键词分类优先级（Precedence）
+### Keyword Category Precedence
 
-1. `OPPORTUNITY`：匹配关键词 `career`, `internship`, `recruitment`
-2. `ACADEMIC`：匹配关键词 `workshop`, `seminar`, `lecture`
-3. `SOCIAL`：匹配关键词 `club`, `society`, `social`
-4. `GENERAL`：以上关键词均未匹配时归为 `GENERAL`
+1. `OPPORTUNITY`: matches `career`, `internship`, `recruitment`
+2. `ACADEMIC`: matches `workshop`, `seminar`, `lecture`
+3. `SOCIAL`: matches `club`, `society`, `social`
+4. `GENERAL`: default when none match
 
-### Priority 映射
+### Priority Mapping
 
 - `OPPORTUNITY` → `HIGH`
 - `ACADEMIC` → `MEDIUM`
 - `SOCIAL` → `NORMAL`
 - `GENERAL` → `NORMAL`
 
-## API Specification
+## Payload Examples
 
-### Workflow Service -> Processing Function
-
-请求体结构：
+### Workflow Service → Processing Function (via Submission Event)
 
 ```json
 {
@@ -240,9 +255,7 @@ curl http://localhost:5002/records | jq '.[0]'  # 查看第一条记录
 }
 ```
 
-### Processing Function 返回 / Result Update 传递结构
-
-回传到 Data Service 的结果中包含：
+### Processor Output (sent to Result Update, then written to Data Service)
 
 ```json
 {
@@ -257,182 +270,131 @@ curl http://localhost:5002/records | jq '.[0]'  # 查看第一条记录
 }
 ```
 
-其中 `final_status`, `assigned_category`, `assigned_priority` 为前端展示的核心判定字段。
+## Docker Compose Notes
 
-## Processing Function 规则说明
-
-`functions/processor/logic.py` 实现了以下规则：
-
-1. 完整性检查：若缺少任意字段，返回 `INCOMPLETE`。
-2. 日期校验：若格式不是 `YYYY-MM-DD`，返回 `NEEDS_REVISION`。
-3. 描述长度：若描述少于 40 字符，返回 `NEEDS_REVISION`。
-4. 类别分配：优先关键字规则 `OPPORTUNITY > ACADEMIC > SOCIAL > GENERAL`。
-5. 优先级分配：`OPPORTUNITY` => `HIGH`，`ACADEMIC` => `MEDIUM`，其余 => `NORMAL`。
-
-该逻辑已确保 `INCOMPLETE` 优先级最高，并在缺失字段时直接返回结果，不继续后续规则判断。
-
-## Docker Compose 说明
-
-仓库提供了 `docker-compose.yml`，用于稍后容器化三个主要服务：
+The repository provides `docker-compose.yml` for containerizing the main services:
 
 - `presentation`
 - `workflow-service`
 - `data-service`
 
-当前文件也预留了 Serverless 回调 URL 环境变量 `SUBMISSION_EVENT_URL` 和 `RESULT_UPDATE_URL`，方便后续扩展到函数模拟容器。
+It also reserves the callback URL environment variables `SUBMISSION_EVENT_URL` and `RESULT_UPDATE_URL` for later extension to function simulation containers.
 
-> 注意：当前本地复现更稳妥，容器化版本仍需根据实际环境检查 `services/presentation` 前端构建是否完整。
+> Note: Local development tends to be more reliable; the containerized setup may need adjustments depending on your environment (especially the `services/presentation` build).
 
-## 如何把代码上传到 GitHub
+## Publishing to GitHub
 
-以下步骤假设你已经在 GitHub 上创建了一个空仓库，例如 `https://github.com/<your-username>/campus-buzz.git`。
-
-1. 检查当前仓库状态：
+These steps assume you created an empty GitHub repository, e.g. `https://github.com/<your-username>/campus-buzz.git`.
 
 ```bash
 git status
-```
-
-2. 添加所有文件：
-
-```bash
 git add .
-```
-
-3. 提交改动：
-
-```bash
-git commit -m "Add React frontend with Material-UI for better visualization"
-```
-
-4. 添加远程仓库（如果还未添加）：
-
-```bash
+git commit -m "Update project"
 git remote add origin https://github.com/<your-username>/campus-buzz.git
-```
-
-5. 推送到 GitHub：
-
-```bash
 git push -u origin main
 ```
 
-如果你的主分支叫 `master`，请改成：
+If your default branch is `master`, use:
 
 ```bash
 git push -u origin master
 ```
 
-## 其他建议
+## Additional Suggestions
 
-### 🔄 扩展开发
+### Extensions
 
-- **添加 Processing Function**：实现 `functions/processor/logic.py` 的完整事件处理逻辑
-- **集成 Serverless Functions**：完善 `functions/` 目录下的云函数模拟
-- **添加用户认证**：集成简单的登录系统（可选）
-- **数据库升级**：从 SQLite 迁移到 PostgreSQL
+- Extend processing logic in `functions/processor/logic.py`
+- Expand the serverless simulators under `functions/`
+- Add authentication (optional)
+- Migrate from SQLite to PostgreSQL
 
-### 🐳 容器化部署
-
-当前项目支持 Docker 部署：
+### Container Deployment
 
 ```bash
-# 构建并启动容器
 docker-compose up --build
-
-# 或后台运行
 docker-compose up -d
 ```
 
-注意：容器化版本需要调整服务间的网络配置。
+Note: you may need to adjust service-to-service networking settings for your environment.
 
-### 📈 性能优化
+### Performance
 
-- **数据库连接池**：在高并发场景下优化 SQLAlchemy 配置
-- **API 缓存**：添加 Redis 缓存层
-- **前端优化**：实现代码分割和懒加载
+- Tune SQLAlchemy configuration for higher concurrency
+- Add caching (e.g. Redis)
+- Add frontend code splitting and lazy loading
 
-### 🤝 贡献指南
+### Contributing
 
-1. Fork 项目
-2. 创建特性分支：`git checkout -b feature/amazing-feature`
-3. 提交更改：`git commit -m 'Add amazing feature'`
-4. 推送分支：`git push origin feature/amazing-feature`
-5. 创建 Pull Request
+1. Fork the project
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m "Add amazing feature"`
+4. Push branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-### 📄 许可证
+### License
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
-## 常见问题
+## FAQ
 
-### 🚨 启动问题
+### Startup Issues
 
-**Q: 运行 `./start-services.sh` 后报错 "command not found"**
-- A: 确保脚本有执行权限：`chmod +x start-services.sh`
+**Q: Running `./start-services.sh` shows "command not found"**
 
-**Q: Python 版本问题或依赖安装失败**
-- A: 检查 Python 版本：`python3 --version`
-- 确保使用系统 Python 或正确配置环境
+- Ensure the script is executable: `chmod +x start-services.sh`
 
-**Q: Node.js 未找到或版本过低**
-- A: 检查 Node.js：`node --version`
-- 如果使用 nvm，启动脚本会自动加载
+**Q: Python version issues or dependency installation fails**
 
-**Q: 端口被占用**
-- A: 检查端口使用：`lsof -i :5001 -i :5002 -i :3000`
-- 停止占用进程或修改端口配置
+- Check your Python version: `python3 --version`
+- Ensure you are using the correct environment
 
-### 🔧 运行时问题
+**Q: Node.js not found or version too old**
 
-**Q: 前端显示 504 Gateway Timeout**
-- A: 后端服务未正确启动或连接失败
-- 检查所有服务是否在运行：`ps aux | grep -E "(python|node)"`
-- 确保 Workflow Service 使用正确的 Data Service URL
+- Check Node.js: `node --version`
 
-**Q: 提交事件后无响应或显示错误**
-- A: 检查所有必需字段是否填写完整
-- 验证后端服务状态：`curl http://localhost:5001/` 和 `curl http://localhost:5002/`
+**Q: Port already in use**
 
-**Q: 事件列表不显示**
-- A: 检查前端是否能访问 Data Service
-- 验证 CORS 设置和网络连接
+- Check port usage: `lsof -i :5001 -i :5002 -i :3000`
+- Stop the process using the port or update your port configuration
 
-### 🐛 调试技巧
+### Runtime Issues
 
-**检查服务状态**：
+**Q: Frontend shows 504 Gateway Timeout**
+
+- Backend services are not running or not reachable
+- Check processes: `ps aux | grep -E "(python|node)"`
+- Ensure Workflow Service uses the correct Data Service URL
+
+**Q: Submitting an event has no response or shows errors**
+
+- Ensure all required fields are provided
+- Verify backend services:
+  - `curl http://localhost:5001/`
+  - `curl http://localhost:5002/`
+
+**Q: Event list does not show**
+
+- Ensure the frontend can reach the Data Service
+- Verify CORS settings and network connectivity
+
+### Debugging Tips
+
 ```bash
-# 查看运行进程
-ps aux | grep -E "(python|node)" | grep -v grep
-
-# 测试 API 连接
 curl http://localhost:5001/  # Workflow Service
 curl http://localhost:5002/  # Data Service
 curl http://localhost:3000   # Frontend
 ```
 
-**查看服务日志**：
-- 前端：浏览器开发者工具 Console
-- 后端：终端窗口直接查看输出
+### Reset Data
 
-**重置数据**：
+If you want to start fresh, delete the SQLite database file and restart the Data Service:
+
 ```bash
-# 删除数据库文件重新开始
 rm services/data-service/events.db
 ```
 
-### 📋 环境兼容性
+### Environment Notes
 
-**macOS (已测试)**：
-- 使用 Homebrew 安装 Python 和 Node.js
-- 虚拟环境路径：`venv/bin/activate`
-
-**Linux**：
-- 确保 Python 3.11+ 和 pip 已安装
-- 可能需要：`sudo apt install python3-venv`
-
-**Windows**：
-- 使用 PowerShell 或 Git Bash
-- 虚拟环境路径：`venv\Scripts\activate`
-- 脚本可能需要调整为 `.bat` 或 `.ps1` 格式
-
+- **macOS**: virtualenv path `venv/bin/activate`
+- **Windows**: virtualenv path `venv\\Scripts\\activate`

@@ -77,6 +77,15 @@ def list_records():
     return jsonify([record_to_dict(record) for record in records])
 
 
+@app.route("/records", methods=["DELETE"])
+def delete_all_records():
+    records = EventRecord.query.all()
+    for record in records:
+        db.session.delete(record)
+    db.session.commit()
+    return jsonify({"deleted": len(records)})
+
+
 @app.route("/records/<int:record_id>", methods=["GET"])
 def get_record(record_id):
     record = EventRecord.query.get(record_id)

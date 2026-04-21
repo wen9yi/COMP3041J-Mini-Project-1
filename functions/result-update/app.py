@@ -10,4 +10,5 @@ def update():
     return jsonify(result)
 
 if __name__ == '__main__':
+    # Keep this separate from processor (8081) for local dev.
     app.run(host='0.0.0.0', port=8082)
